@@ -68,15 +68,22 @@
                     FontWeight="DemiBold"
                     Text="Package List" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <CheckBox
+                        Margin="10,0"
+                        VerticalAlignment="Center"
+                        Content="Installed"
+                        IsChecked="{Binding IsLocal}" />
                     <Button
                         MaxHeight="25"
                         Margin="3"
-                        Padding="3"
+                        Padding="4,0"
+                        Command="{Binding AddPackageCommand}"
                         Content="Add Package" />
                     <Button
                         MaxHeight="25"
                         Margin="3"
-                        Padding="3"
+                        Padding="4,0"
+                        Command="{Binding DeletePackageCommand}"
                         Content="Remove" />
                 </StackPanel>
             </Grid>
@@ -87,34 +94,51 @@
                 AutoGenerateColumns="False"
                 CanUserAddRows="False"
                 CanUserDeleteRows="False"
-                ItemsSource="{Binding Packages}">
+                IsReadOnly="True"
+                ItemsSource="{Binding Packages}"
+                SelectedIndex="{Binding SelectedIndex}">
                 <DataGrid.Columns>
                     <DataGridTextColumn
-                        Width="3*"
+                        Width="4*"
                         Binding="{Binding Name}"
                         ElementStyle="{StaticResource Wraping}"
                         Header="Name" />
                     <DataGridTextColumn
-                        Width="*"
+                        Width="2*"
                         Binding="{Binding Version}"
                         ElementStyle="{StaticResource Wraping}"
                         Header="Version" />
                     <DataGridTextColumn
-                        Width="6*"
+                        Width="10*"
                         Binding="{Binding Description}"
                         ElementStyle="{StaticResource Wraping}"
                         Header="Description" />
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
-        <StackPanel
-            Grid.Row="2"
-            Background="#afafaf"
-            Orientation="Horizontal">
+        <Grid Grid.Row="2" Background="#afafaf">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <TextBlock
                 Margin="4"
                 FontSize="10"
                 Text="{Binding Status}" />
-        </StackPanel>
+            <StackPanel
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <TextBlock
+                    Margin="4"
+                    FontSize="10"
+                    Text="Selected Index :" />
+                <TextBlock
+                    Margin="2,4,15,4"
+                    FontSize="10"
+                    Text="{Binding SelectedIndex}" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

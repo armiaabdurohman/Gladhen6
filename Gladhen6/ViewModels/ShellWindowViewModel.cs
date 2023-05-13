@@ -5,12 +5,17 @@ using Prism.Commands;
 using Prism.Mvvm;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Gladhen6.ViewModels;
 
 public class ShellWindowViewModel : BindableBase
 {
+    private List<PackageModel>? _allPackages;
+    private List<PackageModel>? _localPackages;
+
     private string? _title;
 
     public string? Title
@@ -28,7 +33,6 @@ public class ShellWindowViewModel : BindableBase
     }
 
     private readonly IPackageServices _packageServices;
-    private List<PackageModel>? _actualPackage;
 
     private List<PackageModel> _packages;
 
@@ -44,8 +48,16 @@ public class ShellWindowViewModel : BindableBase
     async void ExecuteRefreshCommand()
     {
         Status = "Load Packages";
-        Packages = await _packageServices.GetPackagesAsync();
-        _actualPackage = new List<PackageModel>(Packages);
+        if (IsLocal)
+        {
+            _localPackages = new List<PackageModel>(await _packageServices.GetInstaledPackagesAsync());
+            Packages = _localPackages;
+        }
+        else
+        {
+            _allPackages = new List<PackageModel>(await _packageServices.GetAllPackageAsync());
+            Packages = _allPackages;
+        }
         Status = "Ready";
     }
 
@@ -68,6 +80,51 @@ public class ShellWindowViewModel : BindableBase
 
     void ExecuteSearchCommand()
     {
-        Packages = _actualPackage!.Where(x => x.Name!.Trim().ToLower().StartsWith(SearchText.ToLower().Trim())).ToList();
+        if (IsLocal)
+            Packages = _localPackages!.Where(x => x.Name!.ToLower().StartsWith(SearchText.ToLower().Trim())).ToList();
+        else
+            Packages = _allPackages!.Where(x => x.Name!.ToLower().StartsWith(SearchText.ToLower().Trim())).ToList();
+    }
+
+    private bool _isLocal;
+    public bool IsLocal
+    {
+        get => _isLocal;
+        set
+        {
+            SetProperty(ref _isLocal, value);
+            RefreshCommand.Execute();
+            SearchCommand.Execute();
+        }
+    }
+
+    private int _selectedIndex;
+    public int SelectedIndex
+    {
+        get => _selectedIndex;
+        set => SetProperty(ref _selectedIndex, value);
+    }
+
+    private DelegateCommand? _addPackageCommand;
+    public DelegateCommand AddPackageCommand => _addPackageCommand ??=
+        new DelegateCommand(ExecuteAddPackageCommand, CanExecuteAddDeletePackageCommand).ObservesProperty(() => SelectedIndex);
+
+    void ExecuteAddPackageCommand()
+    {
+        // TODO: Add logic for add command
+    }
+
+    bool CanExecuteAddDeletePackageCommand()
+    {
+        return SelectedIndex > -1 && SelectedIndex < Packages.Count;
+    }
+
+    private DelegateCommand? _deletePackageCommand;
+    public DelegateCommand DeletePackageCommand => _deletePackageCommand ??=
+        new DelegateCommand(ExecuteDeletePackageCommand, CanExecuteAddDeletePackageCommand).ObservesProperty(() => SelectedIndex);
+
+    void ExecuteDeletePackageCommand()
+    {
+        // TODO: Add logic for delete command
     }
 }

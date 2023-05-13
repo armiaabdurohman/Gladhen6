@@ -21,11 +21,11 @@ public class PackageServices : IPackageServices
         return true;
     }
 
-    public async Task<List<PackageModel>> GetPackagesAsync()
+    private static async Task<string> ExecutePackage(string args)
     {
         var proces = new Process();
         proces.StartInfo.FileName = "vcpkg";
-        proces.StartInfo.Arguments = "list --x-full-desc";
+        proces.StartInfo.Arguments = args;
         proces.StartInfo.RedirectStandardOutput = true;
         proces.StartInfo.UseShellExecute = false;
         proces.StartInfo.CreateNoWindow = true;
@@ -34,7 +34,11 @@ public class PackageServices : IPackageServices
         var output = await proces.StandardOutput.ReadToEndAsync();
         await proces.WaitForExitAsync();
         proces.Close();
-        var packages = new List<PackageModel>();
+        return output;
+    }
+
+    private static IEnumerable<PackageModel> ParsePackage(string output)
+    {
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         foreach (var line in lines)
         {
@@ -46,8 +50,19 @@ public class PackageServices : IPackageServices
                 desc.Append(parts.ElementAtOrDefault(1));
             for (int i = 2; i < parts.Length; i++)
                 desc.Append($"{parts[i]} ");
-            packages.Add(new PackageModel { Name = name, Version = version, Description = desc.ToString() });
+            yield return new PackageModel { Name = name, Version = version, Description = desc.ToString() };
         }
-        return packages;
+    }
+
+    public async Task<List<PackageModel>> GetInstaledPackagesAsync()
+    {
+        var output = await ExecutePackage("list --x-full-desc");
+        return ParsePackage(output).ToList();
+    }
+
+    public async Task<List<PackageModel>> GetAllPackageAsync()
+    {
+        var output = await ExecutePackage("search --x-full-desc");
+        return ParsePackage(output).SkipLast(2).ToList();
     }
 }
