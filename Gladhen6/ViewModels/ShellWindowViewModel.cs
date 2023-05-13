@@ -1,4 +1,5 @@
-﻿using Gladhen6.Models;
+﻿using Gladhen6.Enums;
+using Gladhen6.Models;
 using Gladhen6.Services;
 using ImTools;
 using Prism.Commands;
@@ -43,11 +44,13 @@ public class ShellWindowViewModel : BindableBase
     }
 
     private DelegateCommand? _refreshCommand;
-    public DelegateCommand RefreshCommand => _refreshCommand ??= new DelegateCommand(ExecuteRefreshCommand);
+    public DelegateCommand RefreshCommand => _refreshCommand ??=
+        new DelegateCommand(ExecuteRefreshCommand, CanExecutePackage).ObservesProperty(() => Status);
 
     async void ExecuteRefreshCommand()
     {
-        Status = "Load Packages";
+        IsLocalEnable = false;
+        Status = "Getting Packages";
         if (IsLocal)
         {
             _localPackages = new List<PackageModel>(await _packageServices.GetInstaledPackagesAsync());
@@ -59,6 +62,8 @@ public class ShellWindowViewModel : BindableBase
             Packages = _allPackages;
         }
         Status = "Ready";
+        SearchCommand.Execute();
+        IsLocalEnable = true;
     }
 
     private string? _status;
@@ -75,8 +80,14 @@ public class ShellWindowViewModel : BindableBase
         set { SetProperty(ref _searchText, value); }
     }
 
+    private bool CanExecutePackage()
+    {
+        return Status == "Ready";
+    }
+
     private DelegateCommand? _searchCommand;
-    public DelegateCommand SearchCommand => _searchCommand ??= new DelegateCommand(ExecuteSearchCommand);
+    public DelegateCommand SearchCommand => _searchCommand ??=
+        new DelegateCommand(ExecuteSearchCommand, CanExecutePackage).ObservesProperty(() => Status);
 
     void ExecuteSearchCommand()
     {
@@ -94,7 +105,6 @@ public class ShellWindowViewModel : BindableBase
         {
             SetProperty(ref _isLocal, value);
             RefreshCommand.Execute();
-            SearchCommand.Execute();
         }
     }
 
@@ -107,24 +117,57 @@ public class ShellWindowViewModel : BindableBase
 
     private DelegateCommand? _addPackageCommand;
     public DelegateCommand AddPackageCommand => _addPackageCommand ??=
-        new DelegateCommand(ExecuteAddPackageCommand, CanExecuteAddDeletePackageCommand).ObservesProperty(() => SelectedIndex);
+        new DelegateCommand(ExecuteAddPackageCommand, CanExecuteAddDeletePackageCommand)
+        .ObservesProperty(() => SelectedIndex).ObservesProperty(() => Status);
 
-    void ExecuteAddPackageCommand()
+    async void ExecuteAddPackageCommand()
     {
-        // TODO: Add logic for add command
+        var packageName = Packages[SelectedIndex].Name;
+        if (packageName is null)
+            return;
+        IsLocalEnable = false;
+        Status = $"Adding {packageName}";
+        var res = await _packageServices.AddPackageAsync(packageName);
+        if (res == ResultEnum.Success)
+            MessageBox.Show($"Succesfull adding {packageName}");
+        else
+            MessageBox.Show($"Failed adding {packageName}");
+        Status = "Ready";
+        RefreshCommand.Execute();
+        IsLocalEnable = true;
     }
 
     bool CanExecuteAddDeletePackageCommand()
     {
-        return SelectedIndex > -1 && SelectedIndex < Packages.Count;
+        return SelectedIndex > -1 && SelectedIndex < Packages.Count && Status == "Ready";
     }
 
     private DelegateCommand? _deletePackageCommand;
     public DelegateCommand DeletePackageCommand => _deletePackageCommand ??=
-        new DelegateCommand(ExecuteDeletePackageCommand, CanExecuteAddDeletePackageCommand).ObservesProperty(() => SelectedIndex);
+        new DelegateCommand(ExecuteDeletePackageCommand, CanExecuteAddDeletePackageCommand)
+        .ObservesProperty(() => SelectedIndex).ObservesProperty(() => Status);
 
-    void ExecuteDeletePackageCommand()
+    async void ExecuteDeletePackageCommand()
     {
-        // TODO: Add logic for delete command
+        var packageName = Packages[SelectedIndex].Name;
+        if (packageName is null)
+            return;
+        IsLocalEnable = false;
+        Status = $"Deleting {packageName}";
+        var res = await _packageServices.DeletePackageAsync(packageName);
+        if (res == ResultEnum.Success)
+            MessageBox.Show($"Succesfull deleting {packageName}");
+        else
+            MessageBox.Show($"Failed deleting {packageName}");
+        Status = "Ready";
+        RefreshCommand.Execute();
+        IsLocalEnable = true;
+    }
+
+    private bool _isLocalEnable = true;
+    public bool IsLocalEnable
+    {
+        get => _isLocalEnable;
+        set => SetProperty(ref _isLocalEnable, value);
     }
 }

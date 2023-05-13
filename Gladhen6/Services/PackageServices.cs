@@ -1,4 +1,5 @@
-﻿using Gladhen6.Models;
+﻿using Gladhen6.Enums;
+using Gladhen6.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -64,5 +65,21 @@ public class PackageServices : IPackageServices
     {
         var output = await ExecutePackage("search --x-full-desc");
         return ParsePackage(output).SkipLast(2).ToList();
+    }
+
+    public async Task<ResultEnum> AddPackageAsync(string packageName)
+    {
+        var output = await ExecutePackage($"install {packageName}");
+        if (output.Contains("Error") || output.Contains("failed"))
+            return ResultEnum.Error;
+        return ResultEnum.Success;
+    }
+
+    public async Task<ResultEnum> DeletePackageAsync(string packageName)
+    {
+        var output = await ExecutePackage($"remove {packageName}");
+        if (output.Contains("Error") || output.Contains("failed"))
+            return ResultEnum.Error;
+        return ResultEnum.Success;
     }
 }
