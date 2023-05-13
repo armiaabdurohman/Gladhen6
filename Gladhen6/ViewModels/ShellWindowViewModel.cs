@@ -45,7 +45,7 @@ public class ShellWindowViewModel : BindableBase
 
     private DelegateCommand? _refreshCommand;
     public DelegateCommand RefreshCommand => _refreshCommand ??=
-        new DelegateCommand(ExecuteRefreshCommand, CanExecutePackage).ObservesProperty(() => Status);
+        new DelegateCommand(ExecuteRefreshCommand, CanExecuteRefreshCommand).ObservesProperty(() => Status);
 
     async void ExecuteRefreshCommand()
     {
@@ -66,6 +66,11 @@ public class ShellWindowViewModel : BindableBase
         IsLocalEnable = true;
     }
 
+    private bool CanExecuteRefreshCommand()
+    {
+        return Status == "Ready";
+    }
+
     private string? _status;
     public string? Status
     {
@@ -80,14 +85,10 @@ public class ShellWindowViewModel : BindableBase
         set { SetProperty(ref _searchText, value); }
     }
 
-    private bool CanExecutePackage()
-    {
-        return Status == "Ready";
-    }
-
     private DelegateCommand? _searchCommand;
     public DelegateCommand SearchCommand => _searchCommand ??=
-        new DelegateCommand(ExecuteSearchCommand, CanExecutePackage).ObservesProperty(() => Status);
+        new DelegateCommand(ExecuteSearchCommand, CanExecuteSearchCommand).ObservesProperty(() => Status)
+        .ObservesProperty(() => Packages);
 
     void ExecuteSearchCommand()
     {
@@ -95,6 +96,11 @@ public class ShellWindowViewModel : BindableBase
             Packages = _localPackages!.Where(x => x.Name!.ToLower().StartsWith(SearchText.ToLower().Trim())).ToList();
         else
             Packages = _allPackages!.Where(x => x.Name!.ToLower().StartsWith(SearchText.ToLower().Trim())).ToList();
+    }
+
+    private bool CanExecuteSearchCommand()
+    {
+        return Status == "Ready" || Packages.Count > 0;
     }
 
     private bool _isLocal;
